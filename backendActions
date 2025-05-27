@@ -1,1 +1,28 @@
+//lo attivo su checkout order approved: stesse verifiche come in payment capture completed
+add_action('woocommerce_paypal_payments_checkout_order_approved_webhook_handler', function($order, $paypal_order_id) {
+    if (!$order || !$paypal_order_id){
+        error_log(" dati mancanti.");
+        return;
+    }
+    $order->update_meta_data('_paypal_order_id', $paypal_order_id);
+    $order->save();
+
+    error_log("APPROVED hook: PayPal Order ID {$paypal_order_id} salvato su ordine #{$order->get_id()}");
+}, 10, 2);
+
+//lo attivo su payment capture completed e aggiorno lo stato dell'ordine da pending-on-hold a completed
+add_action('woocommerce_paypal_payments_payment_capture_completed_webhook_handler', function($order, $paypal_order_id) {
+    if (!$order || !$paypal_order_id){
+        error_log("ordine o PayPal ID mancante.");
+        return;
+    }
+    $order->update_meta_data('_paypal_order_id', $paypal_order_id);
+    
+    if (in_array($order->get_status(), ['pending', 'on-hold'], true)) {
+        $order->update_status('completed', 'Stato aggiornato via hook da functions.php dopo CAPTURE COMPLETED');
+    }
+
+    $order->save();
+    error_log("Hook di aggiornamento stato: ordine #{$order->get_id()} aggiornato a completed da functions.php.");
+}, 20, 2);
 
